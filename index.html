@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1f2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>🥑 Keto Tracker</title>
+<link rel="manifest" href='data:application/manifest+json,{"name":"Keto Tracker","short_name":"Keto","start_url":".","display":"standalone","background_color":"#1a1f2e","theme_color":"#1a1f2e","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥑</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f1419; --card:#1a1f2e; --card2:#242a3d; --line:#2d3548;
+  --txt:#e8eaf0; --txt2:#8b92a8; --txt3:#5a6178;
+  --green:#7dd87d; --green2:#4caf50;
+  --orange:#ffa552; --red:#ff6b6b; --blue:#5ec5ff; --purple:#b794f6;
+  --gold:#ffd166;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",sans-serif;font-size:14px;overscroll-behavior:none}
+body{padding-bottom:80px;min-height:100vh}
+.app{max-width:480px;margin:0 auto;padding:0 16px}
+
+/* Header */
+.hdr{padding:14px 16px 10px;position:sticky;top:0;background:linear-gradient(180deg,var(--bg) 80%,transparent);z-index:50;max-width:480px;margin:0 auto}
+.hdr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.goal-pin{font-size:13px;color:var(--green);font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dday{font-size:12px;color:var(--txt2);background:var(--card);padding:4px 10px;border-radius:12px}
+.keto-bar{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--card);border-radius:12px;border:1px solid var(--line)}
+.keto-dot{width:8px;height:8px;border-radius:50%;background:var(--orange);animation:pulse 2s infinite}
+.keto-dot.on{background:var(--green)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.keto-txt{font-size:12px;color:var(--txt2);flex:1}
+.keto-txt b{color:var(--txt)}
+.score-mini{font-size:18px;font-weight:700;color:var(--gold)}
+
+/* Tabs */
+.tabs{display:flex;background:var(--card);border-radius:14px;padding:4px;margin:12px 0;gap:2px}
+.tab{flex:1;padding:10px 4px;text-align:center;font-size:12px;color:var(--txt2);border-radius:10px;cursor:pointer;font-weight:500;transition:all .2s}
+.tab.active{background:var(--card2);color:var(--txt);font-weight:600}
+.tab-ico{font-size:16px;display:block;margin-bottom:2px}
+
+/* Cards */
+.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid var(--line)}
+.card h3{font-size:13px;color:var(--txt2);font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.card h3 .act{color:var(--blue);font-size:12px;cursor:pointer;font-weight:500}
+
+/* Inputs */
+input,textarea,select{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--txt);padding:11px 12px;border-radius:10px;font-size:14px;font-family:inherit;outline:none}
+input:focus,textarea:focus{border-color:var(--green)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+label{font-size:11px;color:var(--txt3);display:block;margin-bottom:4px;margin-top:6px}
+button{background:var(--green2);color:#fff;border:none;padding:12px;border-radius:10px;font-weight:600;cursor:pointer;font-size:14px;font-family:inherit;width:100%}
+button:active{opacity:.8}
+button.sec{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+button.sm{padding:8px 12px;font-size:12px;width:auto}
+button.danger{background:transparent;color:var(--red);font-size:11px;padding:4px 8px;width:auto}
+
+/* Progress */
+.prog{height:8px;background:var(--card2);border-radius:4px;overflow:hidden;margin:6px 0}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--green2));transition:width .4s}
+.prog-fill.warn{background:linear-gradient(90deg,var(--orange),var(--red))}
+
+/* Macros */
+.macros{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:8px 0}
+.macro{background:var(--card2);padding:10px;border-radius:10px;text-align:center}
+.macro-lbl{font-size:10px;color:var(--txt3);margin-bottom:4px}
+.macro-val{font-size:16px;font-weight:700}
+.macro-tgt{font-size:10px;color:var(--txt3);margin-top:2px}
+
+/* Food list */
+.food-item{display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--card2);border-radius:10px;margin-bottom:6px;font-size:13px}
+.food-name{flex:1}
+.food-meta{color:var(--txt3);font-size:11px;margin-top:2px}
+.food-cal{color:var(--orange);font-weight:600;margin-right:8px}
+.del{color:var(--red);font-size:18px;cursor:pointer;padding:0 6px;background:none;width:auto;line-height:1}
+
+/* Score circle */
+.score-card{text-align:center;padding:20px}
+.score-circle{width:120px;height:120px;margin:0 auto 12px;position:relative}
+.score-circle svg{transform:rotate(-90deg)}
+.score-num{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;font-weight:700}
+.score-lbl{font-size:11px;color:var(--txt2)}
+
+/* Calendar */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
+.cal-h{font-size:10px;color:var(--txt3);text-align:center;padding:4px}
+.cal-d{aspect-ratio:1;border-radius:6px;background:var(--card2);font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--txt2);position:relative;border:1px solid transparent}
+.cal-d.has{font-weight:600}
+.cal-d.s5{background:#1a3a1a;color:#a8e0a8}
+.cal-d.s4{background:#264c26;color:#c8f0c8}
+.cal-d.s3{background:#3d6b1f;color:#e0f5b0}
+.cal-d.s2{background:#7a5e1a;color:#ffd980}
+.cal-d.s1{background:#7a3a1a;color:#ffb080}
+.cal-d.today{border-color:var(--green)}
+.cal-d.empty{visibility:hidden}
+
+/* Chat */
+.chat{max-height:340px;overflow-y:auto;padding:8px 0;display:flex;flex-direction:column;gap:8px}
+.msg{padding:10px 12px;border-radius:14px;max-width:85%;font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.msg.u{background:var(--green2);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.a{background:var(--card2);color:var(--txt);align-self:flex-start;border-bottom-left-radius:4px}
+.msg.thinking{opacity:.6;font-style:italic}
+.chat-in{display:flex;gap:6px;margin-top:8px}
+.chat-in input{flex:1}
+.chat-in button{width:auto;padding:11px 16px}
+
+/* Stats */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:var(--card2);padding:12px;border-radius:10px}
+.stat-l{font-size:11px;color:var(--txt3);margin-bottom:4px}
+.stat-v{font-size:18px;font-weight:700}
+.stat-d{font-size:11px;margin-top:2px}
+.stat-d.up{color:var(--red)}
+.stat-d.down{color:var(--green)}
+
+/* Plan */
+.plan{font-size:13px;line-height:1.7;color:var(--txt)}
+.plan h4{color:var(--green);font-size:13px;margin:12px 0 6px;font-weight:700}
+.plan ul{margin-left:16px;color:var(--txt2)}
+.plan li{margin-bottom:4px}
+
+/* Day detail modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:flex-end;z-index:100}
+.modal.show{display:flex}
+.modal-c{background:var(--card);width:100%;max-width:480px;margin:0 auto;border-radius:20px 20px 0 0;padding:20px;max-height:80vh;overflow-y:auto}
+.modal-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.close{background:none;color:var(--txt2);font-size:22px;width:auto;padding:0;line-height:1}
+
+.warn-banner{background:rgba(255,107,107,.15);border:1px solid var(--red);color:var(--red);padding:10px;border-radius:10px;margin-bottom:10px;font-size:12px;text-align:center}
+.hint{font-size:11px;color:var(--txt3);margin-top:6px;line-height:1.5}
+.empty{text-align:center;color:var(--txt3);padding:24px 12px;font-size:12px}
+
+/* Workout */
+.wo-rec{background:linear-gradient(135deg,rgba(125,216,125,.1),rgba(94,197,255,.1));border:1px solid var(--green);padding:12px;border-radius:10px;margin-bottom:10px;font-size:13px;line-height:1.6}
+.wo-item{display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--card2);border-radius:10px;margin-bottom:6px;font-size:13px}
+.wo-done{color:var(--green);font-size:16px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <div class="goal-pin" id="goalPin">🎯 목표를 입력해주세요</div>
+    <div class="dday" id="dday">D+0</div>
+  </div>
+  <div class="keto-bar">
+    <div class="keto-dot" id="ketoDot"></div>
+    <div class="keto-txt" id="ketoTxt">키토시스 상태 확인 중...</div>
+    <div class="score-mini" id="scoreMini">0</div>
+  </div>
+</div>
+
+<div class="app">
+  <div class="tabs">
+    <div class="tab active" data-t="goal"><span class="tab-ico">🎯</span>목표</div>
+    <div class="tab" data-t="diet"><span class="tab-ico">🍽️</span>식단</div>
+    <div class="tab" data-t="workout"><span class="tab-ico">💪</span>운동</div>
+    <div class="tab" data-t="record"><span class="tab-ico">📊</span>기록</div>
+    <div class="tab" data-t="graph"><span class="tab-ico">📈</span>그래프</div>
+  </div>
+
+  <!-- GOAL TAB -->
+  <div class="page" id="p-goal">
+    <div class="card">
+      <h3>🎯 목표 한 마디</h3>
+      <input id="goalText" placeholder="예: 8주 안에 -8kg, 핏한 셔츠 입기">
+      <div class="row" style="margin-top:8px">
+        <div><label>시작일</label><input type="date" id="startDate"></div>
+        <div><label>종료일</label><input type="date" id="endDate"></div>
+      </div>
+      <div class="prog" style="margin-top:10px"><div class="prog-fill" id="goalProg" style="width:0%"></div></div>
+      <div class="hint" id="goalProgTxt">기간을 설정해주세요</div>
+    </div>
+
+    <div class="card">
+      <h3>👤 현재 정보</h3>
+      <div class="row">
+        <div><label>키 (cm)</label><input type="number" id="height" inputmode="decimal"></div>
+        <div><label>나이</label><input type="number" id="age" inputmode="numeric"></div>
+      </div>
+      <div class="row">
+        <div><label>성별</label><select id="gender"><option value="m">남성</option><option value="f">여성</option></select></div>
+        <div><label>활동량</label><select id="activity">
+          <option value="1.2">거의 안함</option>
+          <option value="1.375" selected>가벼운 활동</option>
+          <option value="1.55">보통 활동</option>
+          <option value="1.725">활발</option>
+        </select></div>
+      </div>
+      <div class="row3">
+        <div><label>체중 (kg)</label><input type="number" id="weight" inputmode="decimal" step="0.1"></div>
+        <div><label>체지방 (%)</label><input type="number" id="bodyFat" inputmode="decimal" step="0.1"></div>
+        <div><label>근육량 (kg)</label><input type="number" id="muscle" inputmode="decimal" step="0.1"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🎯 목표 수치</h3>
+      <div class="row3">
+        <div><label>목표 체중</label><input type="number" id="tWeight" inputmode="decimal" step="0.1"></div>
+        <div><label>목표 체지방</label><input type="number" id="tBodyFat" inputmode="decimal" step="0.1"></div>
+        <div><label>목표 근육량</label><input type="number" id="tMuscle" inputmode="decimal" step="0.1"></div>
+      </div>
+      <button onclick="saveGoal()" style="margin-top:12px">저장하고 맞춤 플랜 받기 ✨</button>
+    </div>
+
+    <div class="card" id="planCard" style="display:none">
+      <h3>🥑 나만의 키토 플랜</h3>
+      <div class="plan" id="planContent"></div>
+    </div>
+
+    <div class="card">
+      <h3>🔑 AI 설정 (Anthropic API 키)</h3>
+      <input type="password" id="apiKey" placeholder="sk-ant-api03-...">
+      <button onclick="saveKey()" class="sec" style="margin-top:8px">키 저장</button>
+      <div class="hint">키는 폰에만 저장돼요 (외부 전송 X). console.anthropic.com에서 발급. AI 음식 분석 + 운동 코치 채팅에 사용됩니다.</div>
+      <div id="keyStatus" class="hint" style="margin-top:6px"></div>
+    </div>
+  </div>
+
+  <!-- DIET TAB -->
+  <div class="page" id="p-diet" style="display:none">
+    <div class="card score-card">
+      <div class="score-circle">
+        <svg width="120" height="120">
+          <circle cx="60" cy="60" r="52" fill="none" stroke="#242a3d" stroke-width="10"/>
+          <circle id="scoreRing" cx="60" cy="60" r="52" fill="none" stroke="#7dd87d" stroke-width="10" stroke-dasharray="326.7" stroke-dashoffset="326.7" stroke-linecap="round"/>
+        </svg>
+        <div class="score-num" id="scoreNum">0</div>
+      </div>
+      <div class="score-lbl" id="scoreLbl">오늘의 키토 점수</div>
+      <div class="hint" id="scoreDetail" style="margin-top:8px"></div>
+    </div>
+
+    <div id="warnBanner" style="display:none" class="warn-banner">⚠️ 순탄수 20g 초과! 키토시스 위험</div>
+
+    <div class="card">
+      <h3>📊 오늘의 매크로</h3>
+      <div class="macros">
+        <div class="macro"><div class="macro-lbl">지방</div><div class="macro-val" style="color:var(--gold)" id="mFat">0g</div><div class="macro-tgt" id="mFatT">/ 0g</div></div>
+        <div class="macro"><div class="macro-lbl">단백질</div><div class="macro-val" style="color:var(--blue)" id="mPro">0g</div><div class="macro-tgt" id="mProT">/ 0g</div></div>
+        <div class="macro"><div class="macro-lbl">순탄수</div><div class="macro-val" style="color:var(--green)" id="mCarb">0g</div><div class="macro-tgt">/ 20g</div></div>
+      </div>
+      <div class="macro" style="margin-top:6px"><div class="macro-lbl">총 칼로리</div><div class="macro-val" style="color:var(--orange)" id="mCal">0 kcal</div><div class="macro-tgt" id="mCalT">/ 0 kcal</div></div>
+    </div>
+
+    <div class="card">
+      <h3>🤖 AI로 음식 추가</h3>
+      <input id="aiFood" placeholder="예: 점심 계란 3개, 베이컨 5장">
+      <button onclick="aiAddFood()" id="aiBtn" style="margin-top:8px">AI에게 영양 정보 물어보기</button>
+      <div class="hint">자유롭게 먹은 걸 적어주세요. AI가 분석해서 자동 추가합니다.</div>
+    </div>
+
+    <div class="card">
+      <h3>✏️ 직접 입력</h3>
+      <input id="fName" placeholder="음식 이름">
+      <div class="row" style="margin-top:8px">
+        <div><label>칼로리</label><input type="number" id="fCal" inputmode="decimal"></div>
+        <div><label>순탄수(g)</label><input type="number" id="fCarb" inputmode="decimal" step="0.1"></div>
+      </div>
+      <div class="row">
+        <div><label>단백질(g)</label><input type="number" id="fPro" inputmode="decimal" step="0.1"></div>
+        <div><label>지방(g)</label><input type="number" id="fFat" inputmode="decimal" step="0.1"></div>
+      </div>
+      <button onclick="addFood()" style="margin-top:8px">추가</button>
+    </div>
+
+    <div class="card">
+      <h3>🍽️ 오늘 먹은 것 <span class="act" onclick="clearToday()">전체삭제</span></h3>
+      <div id="foodList"><div class="empty">아직 먹은 게 없어요</div></div>
+    </div>
+  </div>
+
+  <!-- WORKOUT TAB -->
+  <div class="page" id="p-workout" style="display:none">
+    <div class="card">
+      <h3>💪 오늘의 운동 추천</h3>
+      <div class="wo-rec" id="woRec">근력운동 + 인클라인 걷기 10분 (식후)</div>
+      <button onclick="logWorkout()" class="sec">오늘 운동 완료 ✓</button>
+    </div>
+
+    <div class="card">
+      <h3>🤖 AI 운동 코치</h3>
+      <div class="chat" id="chatBox">
+        <div class="msg a">안녕하세요! 운동에 대해 뭐든 물어보세요. 오늘 컨디션, 운동 루틴 추천, 자세 교정 등 도와드릴게요 💪</div>
+      </div>
+      <div class="chat-in">
+        <input id="chatIn" placeholder="메시지 입력..." onkeydown="if(event.key==='Enter')sendChat()">
+        <button onclick="sendChat()" id="chatBtn">전송</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📅 운동 기록</h3>
+      <div id="woList"><div class="empty">아직 운동 기록이 없어요</div></div>
+    </div>
+  </div>
+
+  <!-- RECORD TAB -->
+  <div class="page" id="p-record" style="display:none">
+    <div class="card">
+      <h3>📝 오늘 측정값 기록</h3>
+      <div class="row3">
+        <div><label>체중</label><input type="number" id="rWeight" inputmode="decimal" step="0.1"></div>
+        <div><label>체지방</label><input type="number" id="rBodyFat" inputmode="decimal" step="0.1"></div>
+        <div><label>근육량</label><input type="number" id="rMuscle" inputmode="decimal" step="0.1"></div>
+      </div>
+      <button onclick="addRecord()" style="margin-top:10px">기록 저장</button>
+    </div>
+
+    <div class="card">
+      <h3>📊 시작 대비 변화</h3>
+      <div class="stat-grid" id="changeStats">
+        <div class="stat"><div class="stat-l">기록을 시작해보세요</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📅 전체 기록</h3>
+      <div id="recList"><div class="empty">기록이 없어요</div></div>
+    </div>
+  </div>
+
+  <!-- GRAPH TAB -->
+  <div class="page" id="p-graph" style="display:none">
+    <div class="card">
+      <h3>📈 일별 점수 캘린더</h3>
+      <div class="cal" id="calendar"></div>
+      <div class="hint" style="margin-top:10px">각 칸을 누르면 그 날의 식단/운동을 볼 수 있어요</div>
+    </div>
+    <div class="card">
+      <h3>⚖️ 체중 변화</h3>
+      <canvas id="chartW" height="200"></canvas>
+    </div>
+    <div class="card">
+      <h3>📉 체지방 변화</h3>
+      <canvas id="chartF" height="200"></canvas>
+    </div>
+    <div class="card">
+      <h3>💪 근육량 변화</h3>
+      <canvas id="chartM" height="200"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Day detail modal -->
+<div class="modal" id="dayModal">
+  <div class="modal-c">
+    <div class="modal-h">
+      <h3 id="modalDate" style="font-size:16px;color:var(--txt)">날짜</h3>
+      <button class="close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ============ STORAGE ============
+const DB = {
+  get(k, d){ try{ const v = localStorage.getItem('keto_'+k); return v?JSON.parse(v):d; }catch(e){return d;} },
+  set(k, v){ try{ localStorage.setItem('keto_'+k, JSON.stringify(v)); }catch(e){} }
+};
+
+// ============ STATE ============
+let state = {
+  goal: DB.get('goal', {}),
+  foods: DB.get('foods', {}),       // { '2026-04-14': [{name,cal,carb,pro,fat}, ...] }
+  records: DB.get('records', []),   // [{date,weight,bodyFat,muscle}]
+  workouts: DB.get('workouts', {}), // { '2026-04-14': [{type,note}] }
+  scores: DB.get('scores', {}),     // { '2026-04-14': number }
+  chat: DB.get('chat', []),
+  startDay: DB.get('startDay', null) // 키토 시작일
+};
+
+const today = () => new Date().toISOString().slice(0,10);
+const fmt = d => new Date(d).toLocaleDateString('ko-KR',{month:'short',day:'numeric'});
+
+// ============ TABS ============
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick = ()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.style.display='none');
+    t.classList.add('active');
+    const id = 'p-'+t.dataset.t;
+    document.getElementById(id).style.display='block';
+    if(t.dataset.t==='graph') renderGraphs();
+    if(t.dataset.t==='record') renderRecords();
+    if(t.dataset.t==='diet') renderDiet();
+    if(t.dataset.t==='workout') renderWorkouts();
+  };
+});
+
+// ============ GOAL ============
+function loadGoal(){
+  const g = state.goal;
+  ['goalText','startDate','endDate','height','age','gender','activity','weight','bodyFat','muscle','tWeight','tBodyFat','tMuscle'].forEach(k=>{
+    if(g[k]!=null && document.getElementById(k)) document.getElementById(k).value = g[k];
+  });
+  if(!g.startDate) document.getElementById('startDate').value = today();
+  updateGoalPin();
+  if(g.plan){
+    document.getElementById('planCard').style.display='block';
+    document.getElementById('planContent').innerHTML = g.plan;
+  }
+}
+function updateGoalPin(){
+  const g = state.goal;
+  document.getElementById('goalPin').textContent = g.goalText ? '🎯 '+g.goalText : '🎯 목표를 입력해주세요';
+  if(g.startDate){
+    const days = Math.floor((new Date(today()) - new Date(g.startDate))/86400000);
+    document.getElementById('dday').textContent = 'D+'+days;
+    if(g.endDate){
+      const total = Math.floor((new Date(g.endDate) - new Date(g.startDate))/86400000);
+      const pct = Math.min(100, Math.max(0, days/total*100));
+      document.getElementById('goalProg').style.width = pct+'%';
+      document.getElementById('goalProgTxt').textContent = `${days}일 / ${total}일 (${pct.toFixed(0)}%)`;
+    }
+    // 키토시스 상태
+    updateKeto(days);
+  }
+}
+function updateKeto(days){
+  const dot = document.getElementById('ketoDot');
+  const txt = document.getElementById('ketoTxt');
+  if(days < 3){
+    dot.classList.remove('on');
+    txt.innerHTML = `<b>키토 적응 단계</b> · D+${days} (3일 후 키토시스 진입)`;
+  } else {
+    dot.classList.add('on');
+    txt.innerHTML = `<b>키토시스 상태</b> · D+${days} · 지방 연소 ON 🔥`;
+  }
+}
+
+function saveGoal(){
+  const g = {};
+  ['goalText','startDate','endDate','height','age','gender','activity','weight','bodyFat','muscle','tWeight','tBodyFat','tMuscle'].forEach(k=>{
+    g[k] = document.getElementById(k).value;
+  });
+  // TDEE & 매크로 계산
+  const w=+g.weight, h=+g.height, a=+g.age, act=+g.activity;
+  if(w&&h&&a){
+    const bmr = g.gender==='m' ? (10*w + 6.25*h - 5*a + 5) : (10*w + 6.25*h - 5*a - 161);
+    const tdee = bmr*act;
+    const cut = tdee - 500; // 키토 다이어트 적자
+    g.tdee = Math.round(tdee);
+    g.calTarget = Math.round(cut);
+    g.fatTarget = Math.round(cut*0.7/9);
+    g.proTarget = Math.round(w*1.6); // g
+    g.carbTarget = 20;
+    g.plan = buildPlan(g);
+  }
+  state.goal = g;
+  DB.set('goal', g);
+  loadGoal();
+  renderDiet();
+  alert('저장 완료! ✨');
+}
+
+function buildPlan(g){
+  const w=+g.weight, tw=+g.tWeight;
+  const diff = w-tw;
+  const weeks = g.endDate ? Math.ceil((new Date(g.endDate)-new Date(g.startDate))/86400000/7) : 8;
+  return `
+<h4>📊 계산된 수치</h4>
+<ul>
+<li>기초대사량: 약 ${Math.round(g.tdee/+g.activity)} kcal</li>
+<li>유지 칼로리(TDEE): <b>${g.tdee} kcal</b></li>
+<li>다이어트 목표 칼로리: <b>${g.calTarget} kcal</b> (-500)</li>
+</ul>
+
+<h4>🥑 매크로 분배 (목표)</h4>
+<ul>
+<li>지방 ${g.fatTarget}g (70%) · 단백질 ${g.proTarget}g (체중 1.6배) · 순탄수 20g 이하</li>
+</ul>
+
+<h4>📅 ${weeks}주 전략</h4>
+<ul>
+<li><b>1주차</b>: 키토 적응기. 키토 플루 가능성 ↑ 물·소금·마그네슘 충분히</li>
+<li><b>2-3주차</b>: 키토시스 안정. 체수분 빠지며 -2~3kg 가능</li>
+<li><b>4주차~</b>: 본격 지방 연소. 주당 -0.5~1kg 페이스</li>
+<li><b>마지막 2주</b>: 운동 강도 ↑, 단백질 비율 살짝 ↑로 근육 보존</li>
+</ul>
+
+<h4>🍳 추천 식단 예시</h4>
+<ul>
+<li><b>아침</b>: 계란 3개 + 베이컨 + 아보카도 1/2</li>
+<li><b>점심</b>: 삼겹살 200g + 상추쌈 + 된장</li>
+<li><b>저녁</b>: 연어 + 브로콜리 + 올리브유</li>
+<li><b>간식</b>: 견과류 한 줌, 치즈, 무가당 그릭요거트</li>
+</ul>
+
+<h4>⚠️ 주의사항</h4>
+<ul>
+<li>물 하루 2-3L, 소금 충분히 (전해질 부족 시 두통·피로)</li>
+<li>탄수 20g은 <b>순탄수</b> (총 탄수 - 식이섬유)</li>
+<li>가공육·당분 숨은 소스 주의 (케찹·드레싱)</li>
+<li>술은 위스키·소주 가능, 맥주·와인 NO</li>
+</ul>
+
+<h4>💪 운동 추천</h4>
+<ul>
+<li>주 3-4회 근력운동 (스쿼트·데드·벤치 중심)</li>
+<li>근력 후 <b>인클라인 걷기 10분</b> (지방 연소 극대화)</li>
+<li>1주차는 무리 X, 적응 후 강도 ↑</li>
+</ul>`;
+}
+
+// ============ DIET ============
+function renderDiet(){
+  const d = today();
+  const list = state.foods[d] || [];
+  const sum = list.reduce((a,f)=>({cal:a.cal+(+f.cal||0),carb:a.carb+(+f.carb||0),pro:a.pro+(+f.pro||0),fat:a.fat+(+f.fat||0)}),{cal:0,carb:0,pro:0,fat:0});
+  const g = state.goal;
+  document.getElementById('mCal').textContent = Math.round(sum.cal)+' kcal';
+  document.getElementById('mCalT').textContent = '/ '+(g.calTarget||0)+' kcal';
+  document.getElementById('mFat').textContent = sum.fat.toFixed(1)+'g';
+  document.getElementById('mFatT').textContent = '/ '+(g.fatTarget||0)+'g';
+  document.getElementById('mPro').textContent = sum.pro.toFixed(1)+'g';
+  document.getElementById('mProT').textContent = '/ '+(g.proTarget||0)+'g';
+  document.getElementById('mCarb').textContent = sum.carb.toFixed(1)+'g';
+  document.getElementById('warnBanner').style.display = sum.carb>20 ? 'block' : 'none';
+
+  // 음식 목록
+  const fl = document.getElementById('foodList');
+  if(list.length===0) fl.innerHTML = '<div class="empty">아직 먹은 게 없어요</div>';
+  else fl.innerHTML = list.map((f,i)=>`
+    <div class="food-item">
+      <div class="food-name">${f.name}<div class="food-meta">탄${(+f.carb).toFixed(1)} · 단${(+f.pro).toFixed(1)} · 지${(+f.fat).toFixed(1)}</div></div>
+      <span class="food-cal">${Math.round(+f.cal)}kcal</span>
+      <button class="del" onclick="delFood(${i})">×</button>
+    </div>`).join('');
+
+  // 점수 계산
+  const score = calcScore(sum, g, list.length);
+  drawScore(score, sum, g);
+  updateGoalPin();
+}
+
+function calcScore(sum, g, foodCount){
+  let s = 0;
+  // 순탄수 (40점) - 20g 이하면 만점, 초과 시 감점
+  if(sum.carb<=20) s += 40;
+  else s += Math.max(0, 40 - (sum.carb-20)*3);
+  // 단백질 (25점) - 목표 80~120% 범위 내 만점
+  if(g.proTarget){
+    const r = sum.pro/g.proTarget;
+    if(r>=0.8 && r<=1.2) s += 25;
+    else if(r>=0.6) s += 15;
+    else s += Math.max(0, r*20);
+  } else if(sum.pro>50) s += 15;
+  // 지방 (20점)
+  if(g.fatTarget){
+    const r = sum.fat/g.fatTarget;
+    if(r>=0.7 && r<=1.1) s += 20;
+    else s += Math.max(0, 12);
+  } else if(sum.fat>50) s += 12;
+  // 칼로리 (15점)
+  if(g.calTarget){
+    const r = sum.cal/g.calTarget;
+    if(r>=0.85 && r<=1.05) s += 15;
+    else if(r>=0.7) s += 10;
+  } else if(foodCount>0) s += 8;
+  return Math.round(Math.min(100,s));
+}
+
+function drawScore(score, sum, g){
+  const ring = document.getElementById('scoreRing');
+  const c = 326.7;
+  ring.style.strokeDashoffset = c - (c*score/100);
+  let color = '#7dd87d';
+  if(score<40) color='#ff6b6b';
+  else if(score<70) color='#ffa552';
+  ring.style.stroke = color;
+  document.getElementById('scoreNum').textContent = score;
+  document.getElementById('scoreNum').style.color = color;
+  document.getElementById('scoreMini').textContent = score;
+  document.getElementById('scoreMini').style.color = color;
+
+  let lbl = '시작이 좋아요!';
+  if(score>=80) lbl = '완벽한 키토! 🔥';
+  else if(score>=60) lbl = '잘하고 있어요 👍';
+  else if(score>=40) lbl = '조금만 더 신경써요';
+  else lbl = '오늘 식단 점검 필요';
+  document.getElementById('scoreLbl').textContent = lbl;
+
+  let detail = [];
+  if(sum.carb>20) detail.push(`⚠️ 순탄수 ${sum.carb.toFixed(1)}g (목표 20g)`);
+  if(g.proTarget){
+    const dr = (sum.pro/g.proTarget*100).toFixed(0);
+    detail.push(`단백질 ${dr}% 달성`);
+  }
+  document.getElementById('scoreDetail').textContent = detail.join(' · ');
+
+  // 점수 저장
+  state.scores[today()] = score;
+  DB.set('scores', state.scores);
+}
+
+function addFood(){
+  const f = {
+    name: document.getElementById('fName').value,
+    cal: document.getElementById('fCal').value,
+    carb: document.getElementById('fCarb').value,
+    pro: document.getElementById('fPro').value,
+    fat: document.getElementById('fFat').value
+  };
+  if(!f.name) return alert('음식 이름을 입력해주세요');
+  const d = today();
+  state.foods[d] = state.foods[d] || [];
+  state.foods[d].push(f);
+  DB.set('foods', state.foods);
+  ['fName','fCal','fCarb','fPro','fFat'].forEach(id=>document.getElementById(id).value='');
+  renderDiet();
+}
+
+function delFood(i){
+  const d = today();
+  state.foods[d].splice(i,1);
+  DB.set('foods', state.foods);
+  renderDiet();
+}
+
+function clearToday(){
+  if(!confirm('오늘 먹은 거 전부 삭제할까요?')) return;
+  state.foods[today()] = [];
+  DB.set('foods', state.foods);
+  renderDiet();
+}
+
+// ============ AI FOOD ============
+function getKey(){
+  const k = DB.get('apiKey','');
+  if(!k){ alert('먼저 목표 탭에서 Anthropic API 키를 저장해주세요'); return null; }
+  return k;
+}
+
+async function callClaude(messages, system, maxTokens=1000){
+  const key = getKey();
+  if(!key) throw new Error('NO_KEY');
+  const body = {model:"claude-sonnet-4-5", max_tokens:maxTokens, messages};
+  if(system) body.system = system;
+  const res = await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "x-api-key": key,
+      "anthropic-version":"2023-06-01",
+      "anthropic-dangerous-direct-browser-access":"true"
+    },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok){
+    const err = await res.text();
+    throw new Error('API 오류: '+err.slice(0,100));
+  }
+  const data = await res.json();
+  return data.content.filter(c=>c.type==='text').map(c=>c.text).join('');
+}
+
+async function aiAddFood(){
+  const q = document.getElementById('aiFood').value.trim();
+  if(!q) return;
+  const btn = document.getElementById('aiBtn');
+  btn.disabled = true;
+  btn.textContent = 'AI가 계산 중...';
+  try{
+    let txt = await callClaude(
+      [{role:"user", content:`다음 음식의 영양 정보를 JSON으로만 답해줘. 설명, 마크다운, 코드블록 절대 X.
+음식: "${q}"
+
+형식 (여러 음식이면 배열):
+[{"name":"음식명(수량포함)","cal":칼로리,"carb":순탄수g,"pro":단백질g,"fat":지방g}]
+
+순탄수 = 총탄수 - 식이섬유. 한국 음식 기준. 숫자만 (단위X).`}]
+    );
+    txt = txt.replace(/```json|```/g,'').trim();
+    const items = JSON.parse(txt);
+    const arr = Array.isArray(items) ? items : [items];
+    const d = today();
+    state.foods[d] = state.foods[d] || [];
+    arr.forEach(f=>state.foods[d].push(f));
+    DB.set('foods', state.foods);
+    document.getElementById('aiFood').value='';
+    renderDiet();
+    btn.textContent = `✓ ${arr.length}개 추가됨!`;
+    setTimeout(()=>{btn.textContent='AI에게 영양 정보 물어보기';btn.disabled=false;},1500);
+  }catch(e){
+    btn.textContent = e.message.includes('NO_KEY') ? '키 설정 필요' : '오류! 다시 시도';
+    setTimeout(()=>{btn.textContent='AI에게 영양 정보 물어보기';btn.disabled=false;},2000);
+    console.error(e);
+  }
+}
+
+// ============ WORKOUT ============
+function renderWorkouts(){
+  const list = state.workouts[today()] || [];
+  // 전체 운동 목록 모음
+  const allDays = Object.keys(state.workouts).sort().reverse().slice(0,14);
+  const wl = document.getElementById('woList');
+  if(allDays.length===0) wl.innerHTML = '<div class="empty">아직 운동 기록이 없어요</div>';
+  else wl.innerHTML = allDays.map(d=>{
+    const items = state.workouts[d];
+    return items.map(w=>`<div class="wo-item"><div>${w.note||'운동 완료'}<div class="food-meta">${fmt(d)}</div></div><span class="wo-done">✓</span></div>`).join('');
+  }).join('');
+
+  // 채팅 복원
+  const cb = document.getElementById('chatBox');
+  if(state.chat.length>0){
+    cb.innerHTML = '<div class="msg a">안녕하세요! 운동에 대해 뭐든 물어보세요 💪</div>' + 
+      state.chat.map(m=>`<div class="msg ${m.r==='user'?'u':'a'}">${escapeHtml(m.c)}</div>`).join('');
+    cb.scrollTop = cb.scrollHeight;
+  }
+}
+
+function logWorkout(){
+  const note = prompt('오늘 한 운동을 적어주세요', '근력운동 + 인클라인 걷기 10분');
+  if(!note) return;
+  const d = today();
+  state.workouts[d] = state.workouts[d] || [];
+  state.workouts[d].push({note, time: new Date().toISOString()});
+  DB.set('workouts', state.workouts);
+  renderWorkouts();
+}
+
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+async function sendChat(){
+  const inp = document.getElementById('chatIn');
+  const q = inp.value.trim();
+  if(!q) return;
+  const btn = document.getElementById('chatBtn');
+  const cb = document.getElementById('chatBox');
+  
+  state.chat.push({r:'user', c:q});
+  cb.innerHTML += `<div class="msg u">${escapeHtml(q)}</div>`;
+  inp.value='';
+  btn.disabled = true;
+  
+  const thinkId = 'th'+Date.now();
+  cb.innerHTML += `<div class="msg a thinking" id="${thinkId}">생각 중...</div>`;
+  cb.scrollTop = cb.scrollHeight;
+  
+  try{
+    const g = state.goal;
+    const todayFoods = (state.foods[today()]||[]).map(f=>f.name).join(', ');
+    const ctx = `사용자 정보: ${g.gender==='m'?'남':'여'}, ${g.age}세, ${g.weight}kg, 체지방 ${g.bodyFat}%, 키토 다이어트 중. 목표 ${g.tWeight}kg.
+오늘 먹은 것: ${todayFoods||'없음'}.
+운동 추천 컨텍스트: 근력운동 + 인클라인 걷기 10분 루틴.`;
+    
+    const history = state.chat.slice(-10).map(m=>({role:m.r==='user'?'user':'assistant',content:m.c}));
+    const reply = await callClaude(history, `너는 친근한 키토 다이어트 & 운동 코치야. 한국어로 짧고 실용적으로 답해. ${ctx}`);
+    state.chat.push({r:'assistant', c:reply});
+    DB.set('chat', state.chat);
+    document.getElementById(thinkId).remove();
+    cb.innerHTML += `<div class="msg a">${escapeHtml(reply)}</div>`;
+    cb.scrollTop = cb.scrollHeight;
+  }catch(e){
+    document.getElementById(thinkId).textContent = e.message.includes('NO_KEY') ? '먼저 API 키를 저장해주세요 (목표 탭 하단)' : '오류: '+e.message;
+  }
+  btn.disabled = false;
+}
+
+// ============ RECORDS ============
+function addRecord(){
+  const r = {
+    date: today(),
+    weight: +document.getElementById('rWeight').value,
+    bodyFat: +document.getElementById('rBodyFat').value,
+    muscle: +document.getElementById('rMuscle').value
+  };
+  if(!r.weight) return alert('체중은 필수예요');
+  // 같은 날짜 있으면 덮어쓰기
+  state.records = state.records.filter(x=>x.date!==r.date);
+  state.records.push(r);
+  state.records.sort((a,b)=>a.date.localeCompare(b.date));
+  DB.set('records', state.records);
+  ['rWeight','rBodyFat','rMuscle'].forEach(id=>document.getElementById(id).value='');
+  renderRecords();
+}
+
+function renderRecords(){
+  const recs = state.records;
+  const cs = document.getElementById('changeStats');
+  if(recs.length<1){
+    cs.innerHTML = '<div class="stat"><div class="stat-l">기록을 시작해보세요</div></div>';
+  } else {
+    const first = recs[0], last = recs[recs.length-1];
+    const diff = (a,b)=>a&&b?(a-b).toFixed(1):'-';
+    const cls = v => v>0?'up':(v<0?'down':'');
+    const arr = v => v>0?'▲':(v<0?'▼':'');
+    cs.innerHTML = `
+      <div class="stat"><div class="stat-l">현재 체중</div><div class="stat-v">${last.weight}kg</div><div class="stat-d ${cls(last.weight-first.weight)}">${arr(last.weight-first.weight)} ${diff(last.weight,first.weight)}kg</div></div>
+      <div class="stat"><div class="stat-l">현재 체지방</div><div class="stat-v">${last.bodyFat||'-'}%</div><div class="stat-d ${cls(last.bodyFat-first.bodyFat)}">${arr(last.bodyFat-first.bodyFat)} ${diff(last.bodyFat,first.bodyFat)}%</div></div>
+      <div class="stat"><div class="stat-l">근육량</div><div class="stat-v">${last.muscle||'-'}kg</div><div class="stat-d ${cls(first.muscle-last.muscle)}">${arr(last.muscle-first.muscle)} ${diff(last.muscle,first.muscle)}kg</div></div>
+      <div class="stat"><div class="stat-l">기록 일수</div><div class="stat-v">${recs.length}일</div></div>`;
+  }
+  const rl = document.getElementById('recList');
+  if(recs.length===0) rl.innerHTML = '<div class="empty">기록이 없어요</div>';
+  else rl.innerHTML = recs.slice().reverse().map((r,i)=>`
+    <div class="food-item">
+      <div class="food-name">${fmt(r.date)}<div class="food-meta">체중 ${r.weight}kg · 체지방 ${r.bodyFat||'-'}% · 근육 ${r.muscle||'-'}kg</div></div>
+      <button class="del" onclick="delRec(${recs.length-1-i})">×</button>
+    </div>`).join('');
+}
+
+function delRec(i){
+  if(!confirm('이 기록을 삭제할까요?')) return;
+  state.records.splice(i,1);
+  DB.set('records', state.records);
+  renderRecords();
+}
+
+// ============ GRAPH ============
+let charts = {};
+function renderGraphs(){
+  renderCalendar();
+  const recs = state.records;
+  if(recs.length<1) return;
+  const labels = recs.map(r=>fmt(r.date));
+  const g = state.goal;
+  
+  drawChart('chartW', labels, recs.map(r=>r.weight), '#7dd87d', g.tWeight);
+  drawChart('chartF', labels, recs.map(r=>r.bodyFat), '#ffa552', g.tBodyFat);
+  drawChart('chartM', labels, recs.map(r=>r.muscle), '#5ec5ff', g.tMuscle);
+}
+
+function drawChart(id, labels, data, color, target){
+  if(charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  const datasets = [{label:'실측',data,borderColor:color,backgroundColor:color+'22',tension:.3,fill:true,pointRadius:4}];
+  if(target) datasets.push({label:'목표',data:labels.map(()=>+target),borderColor:color,borderDash:[5,5],pointRadius:0,fill:false,borderWidth:1.5});
+  charts[id] = new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,plugins:{legend:{labels:{color:'#8b92a8',font:{size:11}}}},scales:{y:{ticks:{color:'#8b92a8'},grid:{color:'#2d3548'}},x:{ticks:{color:'#8b92a8'},grid:{color:'#2d3548'}}}}});
+}
+
+function renderCalendar(){
+  const cal = document.getElementById('calendar');
+  const days = ['일','월','화','수','목','금','토'];
+  let html = days.map(d=>`<div class="cal-h">${d}</div>`).join('');
+  
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  const first = new Date(y,m,1).getDay();
+  const last = new Date(y,m+1,0).getDate();
+  const td = today();
+  
+  for(let i=0;i<first;i++) html += '<div class="cal-d empty"></div>';
+  for(let d=1;d<=last;d++){
+    const date = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const sc = state.scores[date];
+    let cls = 'cal-d';
+    if(sc!=null){
+      cls += ' has';
+      if(sc>=80) cls+=' s5';
+      else if(sc>=60) cls+=' s4';
+      else if(sc>=40) cls+=' s3';
+      else if(sc>=20) cls+=' s2';
+      else cls+=' s1';
+    }
+    if(date===td) cls+=' today';
+    html += `<div class="${cls}" onclick="showDay('${date}')">${d}${sc!=null?`<div style="position:absolute;bottom:1px;font-size:8px;opacity:.7">${sc}</div>`:''}</div>`;
+  }
+  cal.innerHTML = html;
+}
+
+function showDay(date){
+  const foods = state.foods[date]||[];
+  const wos = state.workouts[date]||[];
+  const sc = state.scores[date];
+  document.getElementById('modalDate').textContent = fmt(date) + (sc!=null?` · 점수 ${sc}`:'');
+  let body = '';
+  body += `<h4 style="color:var(--green);font-size:13px;margin-bottom:6px">🍽️ 식단 (${foods.length}개)</h4>`;
+  if(foods.length===0) body += '<div class="empty">기록 없음</div>';
+  else body += foods.map(f=>`<div class="food-item"><div class="food-name">${f.name}<div class="food-meta">탄${(+f.carb).toFixed(1)} 단${(+f.pro).toFixed(1)} 지${(+f.fat).toFixed(1)}</div></div><span class="food-cal">${Math.round(+f.cal)}kcal</span></div>`).join('');
+  body += `<h4 style="color:var(--blue);font-size:13px;margin:14px 0 6px">💪 운동 (${wos.length}개)</h4>`;
+  if(wos.length===0) body += '<div class="empty">기록 없음</div>';
+  else body += wos.map(w=>`<div class="wo-item"><div>${w.note}</div><span class="wo-done">✓</span></div>`).join('');
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('dayModal').classList.add('show');
+}
+function closeModal(){document.getElementById('dayModal').classList.remove('show');}
+
+// ============ INIT ============
+function saveKey(){
+  const k = document.getElementById('apiKey').value.trim();
+  if(!k.startsWith('sk-ant-')) return alert('Anthropic API 키 형식이 아니에요 (sk-ant-... 로 시작)');
+  DB.set('apiKey', k);
+  document.getElementById('keyStatus').innerHTML = '✅ 저장 완료! AI 기능 사용 가능';
+  document.getElementById('apiKey').value = '••••••••' + k.slice(-6);
+}
+
+function loadKey(){
+  const k = DB.get('apiKey','');
+  if(k){
+    document.getElementById('apiKey').value = '••••••••' + k.slice(-6);
+    document.getElementById('keyStatus').innerHTML = '✅ 키 저장됨 (변경하려면 새로 입력 후 저장)';
+    document.getElementById('apiKey').onfocus = function(){ this.value=''; };
+  }
+}
+
+loadGoal();
+loadKey();
+renderDiet();
+setInterval(updateGoalPin, 60000);
+</script>
+</body>
+</html>
